@@ -3,6 +3,8 @@ import json
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
+from app.agent.tools import github_client
+from app.agent.tools.github_client import GitHubError
 from app.db import database as db
 from app.schemas import CreateRunRequest, CreateRunResponse, Report
 from app.services.event_bus import format_sse
@@ -19,10 +21,16 @@ def _error(status: int, code: str, message: str) -> HTTPException:
 @router.post("/runs", status_code=201, response_model=CreateRunResponse)
 async def create_run(body: CreateRunRequest):
     try:
-        parse_repo_url(body.repo_url)
+        owner, name = parse_repo_url(body.repo_url)
     except ValueError as exc:
         raise _error(400, "invalid_repo_url", str(exc))
-    # repo_not_found (404) and rate_limited (429) arrive with the GitHub client in B4
+
+    try:
+        await github_client.get_repo(owner, name)
+    except GitHubError as exc:
+        status = exc.status if exc.status in (404, 429) else 502
+        raise _error(status, exc.code, exc.message)
+
     return {"run_id": run_manager.start_run(body.repo_url)}
 
 
