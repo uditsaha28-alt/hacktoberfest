@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -9,6 +10,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import settings
 from app.db.database import init_db
 from app.routes import health, runs
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(name)s: %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 @asynccontextmanager
