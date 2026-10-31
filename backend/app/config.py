@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     database_url: str = "sqlite:///./repopilot.db"
 
+    # Agent behaviour
+    use_fake_run: bool = False
+    agent_max_tool_calls: int = 14
+    agent_timeout_seconds: int = 180
+    llm_timeout_seconds: int = 60
+    gemini_thinking_level: str = "low"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
