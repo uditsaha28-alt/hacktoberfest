@@ -4,15 +4,22 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.agent import fake_run
+from app.agent.tools import github_client
+from app.agent.tools.github_client import GitHubError
 from app.config import settings
 from app.main import app
 from app.services.repo_url import parse_repo_url
+
+
+async def _fake_get_repo(owner, name):
+    return {"default_branch": "main", "description": "", "language": "Python", "stars": 0, "open_issues": 0}
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "database_url", f"sqlite:///{tmp_path / 'test.db'}")
     monkeypatch.setattr(fake_run, "STEP_DELAY", 0)
+    monkeypatch.setattr(github_client, "get_repo", _fake_get_repo)
     with TestClient(app) as c:
         yield c
 
@@ -85,3 +92,31 @@ def test_report_before_finished(client, monkeypatch):
     res = client.get(f"/api/runs/{run_id}/report")
     assert res.status_code == 409
     assert res.json()["error"]["code"] == "run_not_finished"
+
+def test_create_run_repo_not_found(client, monkeypatch):
+    async def boom(owner, name):
+        raise GitHubError(404, "repo_not_found", "Repository not found or not public.")
+
+    monkeypatch.setattr(github_client, "get_repo", boom)
+    res = client.post("/api/runs", json={"repo_url": "https://github.com/nobody/nothing"})
+    assert res.status_code == 404
+    assert res.json()["error"]["code"] == "repo_not_found"
+
+
+def test_create_run_rate_limited(client, monkeypatch):
+    async def boom(owner, name):
+        raise GitHubError(429, "rate_limited", "GitHub rate limit reached.")
+
+    monkeypatch.setattr(github_client, "get_repo", boom)
+    res = client.post("/api/runs", json={"repo_url": "https://github.com/pallets/flask"})
+    assert res.status_code == 429
+    assert res.json()["error"]["code"] == "rate_limited"
+
+
+def test_create_run_github_down_maps_to_502(client, monkeypatch):
+    async def boom(owner, name):
+        raise GitHubError(502, "github_unreachable", "Could not reach GitHub.")
+
+    monkeypatch.setattr(github_client, "get_repo", boom)
+    res = client.post("/api/runs", json={"repo_url": "https://github.com/pallets/flask"})
+    assert res.status_code == 502
