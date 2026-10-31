@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 RETRYABLE = {429, 500, 502, 503, 504}
+RETRY_DELAYS = (3, 6, 12)  # seconds to wait before each retry of a temporary failure
 
 
 def to_contents(history: list[dict]) -> list[dict]:
@@ -66,6 +67,7 @@ class GeminiClient(LLMClient):
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
+        self.skip_thinking = False  # set once the model rejects our thinking level
 
     async def generate(self, system: str, history: list[dict], tools: list[dict]) -> LLMResponse:
         body: dict = {
@@ -74,7 +76,7 @@ class GeminiClient(LLMClient):
             "generationConfig": {"temperature": 0.2, "maxOutputTokens": 8192},
         }
         level = settings.gemini_thinking_level.strip()
-        if level:
+        if level and not self.skip_thinking:
             body["generationConfig"]["thinkingConfig"] = {"thinkingLevel": level}
         if tools:
             body["tools"] = [
@@ -92,40 +94,55 @@ class GeminiClient(LLMClient):
         headers = {"x-goog-api-key": self.api_key, "Content-Type": "application/json"}
         url = URL.format(model=self.model)
 
-        res = None
-        for attempt in range(3):
+        retries = 0
+        while True:
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     res = await client.post(url, headers=headers, json=body)
             except httpx.TimeoutException as exc:
-                logger.warning("Gemini timeout: %r", exc)
-                if attempt == 0:
+                logger.warning("Gemini (%s) timeout: %r", self.model, exc)
+                if retries < len(RETRY_DELAYS):
+                    retries += 1
                     continue
                 raise LLMError("Gemini timed out.") from exc
             except httpx.HTTPError as exc:
-                logger.warning("Gemini network error: %r", exc)
-                if attempt == 0:
-                    await asyncio.sleep(2)
+                logger.warning("Gemini (%s) network error: %r", self.model, exc)
+                if retries < len(RETRY_DELAYS):
+                    await asyncio.sleep(RETRY_DELAYS[retries])
+                    retries += 1
                     continue
                 raise LLMError(f"Could not reach Gemini ({type(exc).__name__}).") from exc
 
             if res.status_code == 400 and "thinkingConfig" in body["generationConfig"]:
-                logger.warning("Gemini rejected thinkingConfig, retrying without it: %s", res.text[:300])
+                logger.warning(
+                    "Gemini (%s) rejected the thinking level, retrying without it: %s",
+                    self.model, res.text[:200],
+                )
                 del body["generationConfig"]["thinkingConfig"]
+                self.skip_thinking = True
                 continue
-            if res.status_code in RETRYABLE and attempt == 0:
-                await asyncio.sleep(2)
+
+            if res.status_code in RETRYABLE and retries < len(RETRY_DELAYS):
+                delay = RETRY_DELAYS[retries]
+                retries += 1
+                logger.warning(
+                    "Gemini (%s) HTTP %s, retrying in %ss (%d/%d)",
+                    self.model, res.status_code, delay, retries, len(RETRY_DELAYS),
+                )
+                await asyncio.sleep(delay)
                 continue
             break
 
         if res.status_code == 200:
             return parse_response(res.json())
 
-        logger.warning("Gemini HTTP %s: %s", res.status_code, res.text[:500])
+        logger.warning("Gemini (%s) HTTP %s: %s", self.model, res.status_code, res.text[:500])
         if res.status_code in (401, 403):
             raise LLMError("Gemini rejected the API key.")
         if res.status_code == 404:
-            raise LLMError("Gemini model not found. Check GEMINI_MODEL in backend/.env.")
+            raise LLMError(f"Gemini model '{self.model}' is not available. Check GEMINI_MODEL in backend/.env.")
         if res.status_code == 429:
             raise LLMError("Gemini rate limit reached.")
+        if res.status_code == 503:
+            raise LLMError("Gemini is overloaded right now.")
         raise LLMError(f"Gemini request failed (HTTP {res.status_code}).")
