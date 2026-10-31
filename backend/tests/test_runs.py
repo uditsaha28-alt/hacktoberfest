@@ -19,6 +19,7 @@ async def _fake_get_repo(owner, name):
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "database_url", f"sqlite:///{tmp_path / 'test.db'}")
     monkeypatch.setattr(fake_run, "STEP_DELAY", 0)
+    monkeypatch.setattr(settings, "use_fake_run", True)
     monkeypatch.setattr(github_client, "get_repo", _fake_get_repo)
     with TestClient(app) as c:
         yield c

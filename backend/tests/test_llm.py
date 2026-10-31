@@ -165,3 +165,19 @@ def test_build_llm_orders_gemini_before_groq(monkeypatch):
     monkeypatch.setattr(settings, "groq_model", "m2")
     llm = build_llm()
     assert [c.name for c in llm.clients] == ["gemini", "groq"]
+
+def test_standalone_ignores_the_sticky_fallback():
+    a = Stub("a", error=LLMError("down"))
+    b = Stub("b", result=LLMResponse(text="ok"))
+    llm = FallbackLLM([a, b])
+    run(llm.generate("s", [], []))  # a fails, the llm now sticks to b
+    a.error = None
+    a.result = LLMResponse(text="from a")
+    assert run(llm.generate_standalone("s", [], [])).text == "from a"
+
+def test_standalone_uses_its_own_chain_order():
+    a = Stub("a", error=LLMError("down"))
+    extra = Stub("extra", result=LLMResponse(text="from extra"))
+    b = Stub("b", result=LLMResponse(text="from b"))
+    llm = FallbackLLM([a, b], standalone=[a, extra, b])
+    assert run(llm.generate_standalone("s", [], [])).text == "from extra"
