@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-ink-900 font-sans text-slate-200 antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.22), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(56, 189, 248, 0.08), transparent);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/10 bg-ink-800/70 backdrop-blur;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/20 transition hover:bg-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:opacity-50;
+  }
+}
+
+/* Rendered markdown (react-markdown output) */
+.md {
+  @apply text-sm leading-relaxed text-slate-300;
+}
+.md h1,
+.md h2,
+.md h3 {
+  @apply mb-2 mt-4 font-semibold text-white;
+}
+.md h1 {
+  @apply text-lg;
+}
+.md h2 {
+  @apply text-base;
+}
+.md p {
+  @apply my-2;
+}
+.md ul {
+  @apply my-2 list-disc space-y-1 pl-5;
+}
+.md ol {
+  @apply my-2 list-decimal space-y-1 pl-5;
+}
+.md a {
+  @apply text-brand-400 underline underline-offset-2 hover:text-brand-100;
+}
+.md code {
+  @apply rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.8rem] text-brand-100;
+}
+.md pre {
+  @apply my-3 overflow-x-auto rounded-xl border border-white/10 bg-ink-900 p-3;
+}
+.md pre code {
+  @apply bg-transparent p-0 text-slate-200;
+}
+.md blockquote {
+  @apply my-2 border-l-2 border-brand-500 pl-3 text-slate-400;
+}
+.md table {
+  @apply my-3 w-full text-left text-xs;
+}
+.md th,
+.md td {
+  @apply border border-white/10 px-2 py-1;
+}
+
+/* Mermaid output: keep the SVG inside the card on small screens */
+.mermaid-wrap svg {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}

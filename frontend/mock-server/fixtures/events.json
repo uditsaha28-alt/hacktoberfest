@@ -1,0 +1,64 @@
+[
+  { "delay": 600, "event": "plan", "data": { "steps": ["Read repo tree", "Read README and manifest", "Locate entry points", "Check open issues", "Write report"] } },
+  { "delay": 700, "event": "tool_call", "data": { "id": "t1", "tool": "get_repo_tree", "args": { "path": "" } } },
+  { "delay": 1100, "event": "observation", "data": { "id": "t1", "ok": true, "summary": "Found 42 files across 6 directories" } },
+  { "delay": 500, "event": "tool_call", "data": { "id": "t2", "tool": "read_file", "args": { "path": "README.md" } } },
+  { "delay": 900, "event": "observation", "data": { "id": "t2", "ok": true, "summary": "Read README.md (2.1 KB)" } },
+  { "delay": 500, "event": "tool_call", "data": { "id": "t3", "tool": "read_file", "args": { "path": "package.json" } } },
+  { "delay": 800, "event": "observation", "data": { "id": "t3", "ok": true, "summary": "Read package.json (1.3 KB): express app with jest tests" } },
+  { "delay": 500, "event": "tool_call", "data": { "id": "t4", "tool": "read_file", "args": { "path": "src/server.js" } } },
+  { "delay": 800, "event": "observation", "data": { "id": "t4", "ok": false, "summary": "File not found: src/server.js" } },
+  { "delay": 700, "event": "plan", "data": { "steps": ["Search for the entry point", "Read src/index.js", "Check open issues", "Write report"] } },
+  { "delay": 500, "event": "tool_call", "data": { "id": "t5", "tool": "search_code", "args": { "query": "app.listen" } } },
+  { "delay": 1000, "event": "observation", "data": { "id": "t5", "ok": true, "summary": "2 matches: src/index.js, test/helpers.js" } },
+  { "delay": 500, "event": "tool_call", "data": { "id": "t6", "tool": "read_file", "args": { "path": "src/index.js" } } },
+  { "delay": 900, "event": "observation", "data": { "id": "t6", "ok": true, "summary": "Read src/index.js (3.4 KB): wires routes and middleware" } },
+  {
+    "delay": 600,
+    "event": "section",
+    "data": {
+      "key": "summary",
+      "title": "Overview",
+      "markdown": "**demo-api** is a small REST service built with **Express**. It exposes CRUD endpoints for notes and persists them in a JSON file.\n\n- Language: JavaScript (Node 18+)\n- Tests: Jest\n- Entry point: `src/index.js`"
+    }
+  },
+  { "delay": 500, "event": "tool_call", "data": { "id": "t7", "tool": "list_issues", "args": { "labels": "good first issue", "limit": 10 } } },
+  { "delay": 1000, "event": "observation", "data": { "id": "t7", "ok": true, "summary": "Found 4 open issues labelled good first issue" } },
+  {
+    "delay": 700,
+    "event": "section",
+    "data": {
+      "key": "architecture",
+      "title": "Architecture",
+      "markdown": "Requests enter through `src/index.js`, pass through logging and validation middleware, and reach route handlers in `src/routes/`. Handlers call the storage layer in `src/store.js`, which reads and writes `data/notes.json`.\n\n1. **Routes** parse input and shape responses.\n2. **Middleware** handles logging, errors and validation.\n3. **Store** is the only module that touches the filesystem."
+    }
+  },
+  {
+    "delay": 600,
+    "event": "section",
+    "data": {
+      "key": "diagram",
+      "title": "Architecture diagram",
+      "markdown": "graph TD\n  Client[HTTP Client] --> Index[src/index.js]\n  Index --> MW[Middleware]\n  MW --> Routes[src/routes]\n  Routes --> Store[src/store.js]\n  Store --> JSON[(data/notes.json)]"
+    }
+  },
+  {
+    "delay": 600,
+    "event": "section",
+    "data": {
+      "key": "setup",
+      "title": "Run it locally",
+      "markdown": "```bash\ngit clone https://github.com/demo/demo-api.git\ncd demo-api\nnpm install\nnpm start\n```\n\nThe server listens on `http://localhost:3000`. Run the tests with `npm test`."
+    }
+  },
+  {
+    "delay": 600,
+    "event": "section",
+    "data": {
+      "key": "first_issues",
+      "title": "Your first contributions",
+      "markdown": "Ranked from easiest to hardest. Each one touches code the agent has already read."
+    }
+  },
+  { "delay": 600, "event": "done", "data": {} }
+]

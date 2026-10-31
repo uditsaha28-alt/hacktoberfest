@@ -1,0 +1,57 @@
+{
+  "repo": "demo/demo-api",
+  "summary": "demo-api is a small REST service built with Express. It exposes CRUD endpoints for notes and persists them in a JSON file.",
+  "sections": [
+    {
+      "key": "summary",
+      "title": "Overview",
+      "markdown": "**demo-api** is a small REST service built with **Express**. It exposes CRUD endpoints for notes and persists them in a JSON file.\n\n- Language: JavaScript (Node 18+)\n- Tests: Jest\n- Entry point: `src/index.js`"
+    },
+    {
+      "key": "architecture",
+      "title": "Architecture",
+      "markdown": "Requests enter through `src/index.js`, pass through logging and validation middleware, and reach route handlers in `src/routes/`. Handlers call the storage layer in `src/store.js`, which reads and writes `data/notes.json`.\n\n1. **Routes** parse input and shape responses.\n2. **Middleware** handles logging, errors and validation.\n3. **Store** is the only module that touches the filesystem."
+    },
+    {
+      "key": "setup",
+      "title": "Run it locally",
+      "markdown": "```bash\ngit clone https://github.com/demo/demo-api.git\ncd demo-api\nnpm install\nnpm start\n```\n\nThe server listens on `http://localhost:3000`. Run the tests with `npm test`."
+    },
+    {
+      "key": "first_issues",
+      "title": "Your first contributions",
+      "markdown": "Ranked from easiest to hardest. Each one touches code the agent has already read."
+    }
+  ],
+  "mermaid": "graph TD\n  Client[HTTP Client] --> Index[src/index.js]\n  Index --> MW[Middleware]\n  MW --> Routes[src/routes]\n  Routes --> Store[src/store.js]\n  Store --> JSON[(data/notes.json)]",
+  "first_issues": [
+    {
+      "number": 42,
+      "title": "Fix typo in README setup section",
+      "url": "https://github.com/demo/demo-api/issues/42",
+      "reason": "Documentation only. Edit README.md, no code changes or tests needed.",
+      "difficulty": "easy"
+    },
+    {
+      "number": 37,
+      "title": "Return 404 instead of 500 for unknown note id",
+      "url": "https://github.com/demo/demo-api/issues/37",
+      "reason": "Small change in src/routes/notes.js. The store already returns undefined for missing ids.",
+      "difficulty": "easy"
+    },
+    {
+      "number": 29,
+      "title": "Add pagination to GET /notes",
+      "url": "https://github.com/demo/demo-api/issues/29",
+      "reason": "Touches src/routes/notes.js and src/store.js. Needs new query params and a couple of tests.",
+      "difficulty": "medium"
+    },
+    {
+      "number": 18,
+      "title": "Replace JSON file storage with SQLite",
+      "url": "https://github.com/demo/demo-api/issues/18",
+      "reason": "Rewrites src/store.js behind the existing interface. Larger change, good for an experienced contributor.",
+      "difficulty": "hard"
+    }
+  ]
+}
